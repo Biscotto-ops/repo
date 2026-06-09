@@ -135,7 +135,7 @@ function shuffled(arr) {
 // ---- Paramètres de l'historique ----
 const START_BALANCE = 0.10;   // capital de départ
 const PEAK_BALANCE = 15.4;    // sommet atteint juste avant le retournement
-const FINAL_BALANCE = 14.7;   // solde final après la série perdante
+const FINAL_BALANCE = 14.73;  // solde final après la série perdante (P&L = +14.63)
 const N_TRADES = 623;
 const TAIL_TRADES = 35;        // les 35 derniers (série majoritairement perdante)
 const TAIL_LOSS_RATE = 0.85;   // 85% de ces trades sont perdants

@@ -431,13 +431,15 @@ function openStrategyModal() {
         <div class="muted-sm">Moteur d'exécution AlphaSnipe v3.2</div>
       </div>
     </div>
-    <p class="m-desc">Le bot scanne le mempool à la recherche de nouvelles paires memecoin,
-    filtre via un scan anti-rug (liquidité lockée, contrat vérifié, répartition des holders),
-    puis entre en position avec un dimensionnement dynamique de type Kelly. Sortie automatique
-    au take-profit ou stop-loss.</p>
+    <p class="m-desc">Le bot snipe les nouvelles paires memecoin dès leur création
+    (scan du mempool), après un filtre anti-rug (liquidité lockée, contrat vérifié,
+    répartition des holders). <b>Pas de take-profit fixe</b> : un <b>trailing-stop dynamique</b>
+    laisse courir les gagnants (sorties de +10% à +300% et plus), tandis qu'un stop-loss
+    à -25% coupe les perdants — le slippage peut l'aggraver sur les paires peu liquides.
+    Dimensionnement de type Kelly.</p>
     <div class="m-grid">
-      <div><span>Take profit</span><b class="pos">+85%</b></div>
-      <div><span>Stop loss</span><b class="neg">-22%</b></div>
+      <div><span>Sortie gagnante</span><b class="pos">Trailing-stop dynamique</b></div>
+      <div><span>Stop-loss initial</span><b class="neg">-25%</b></div>
       <div><span>Slippage max</span><b>12%</b></div>
       <div><span>Gas priority</span><b>Turbo (mempool)</b></div>
       <div><span>Dimensionnement</span><b>Kelly dynamique</b></div>
@@ -483,7 +485,7 @@ function buildLogsFromTrades(count) {
     out.push({ t: base - 26000, type: "BUY", msg: `Achat ${t.size.toFixed(3)} ETH $${sym} @ $${fmtPriceJS(t.entry)} · gas ${gas} · slip ${slip}` });
 
     if (t.pnl >= 0) {
-      const label = t.pct > 90 ? "Sortie runner" : "Take-profit";
+      const label = t.pct > 90 ? "Sortie runner" : "Trailing-stop";
       out.push({ t: base, type: "TP", msg: `${label} $${sym} → +${t.pnl.toFixed(3)} ETH · vendu @ $${fmtPriceJS(t.exit)}` });
     } else {
       const label = t.pct < -25 ? "Sortie d'urgence (slippage)" : "Stop-loss";

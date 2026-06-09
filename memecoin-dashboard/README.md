@@ -6,7 +6,7 @@ memecoins. **Données entièrement simulées, à but de démonstration / illustr
 ## Aperçu
 
 - **Capital initial :** 0.10 ETH
-- **Sommet :** 15.4 ETH — puis série perdante finale → **solde final 14.7 ETH**
+- **Sommet :** 15.4 ETH — puis série perdante finale → **solde final 14.73 ETH**
 - **Période :** 3 février 2025 → 28 janvier 2026 (bot ensuite arrêté)
 - **623 trades** générés (≈ 70 % de gains au global ; les 35 derniers, dès le
   24 janvier, sont de petits trades à 85 % perdants)

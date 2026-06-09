@@ -6,7 +6,7 @@
   <title>AlphaSnipe — Memecoin Trading Bot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=11" />
+  <link rel="stylesheet" href="styles.css?v=12" />
 </head>
 <body>
   <!-- ============ TOP BAR ============ -->
@@ -80,7 +80,7 @@
             </div>
             <div class="chart-legend">
               <span class="legend-start">Départ 0.10 ETH</span>
-              <span class="legend-end" id="legendEnd">14.70 ETH</span>
+              <span class="legend-end" id="legendEnd">14.73 ETH</span>
             </div>
           </div>
           <div class="chart-wrap">
@@ -137,8 +137,8 @@
           <ul class="config-list">
             <li><span>Stratégie</span><b>Sniper + Momentum</b></li>
             <li><span>Slippage max</span><b>12%</b></li>
-            <li><span>Take profit</span><b>+85%</b></li>
-            <li><span>Stop loss</span><b>-22%</b></li>
+            <li><span>Sortie gagnante</span><b>Trailing-stop</b></li>
+            <li><span>Stop-loss initial</span><b>-25%</b></li>
             <li><span>Taille position</span><b>Dynamique (Kelly)</b></li>
             <li><span>Gas priority</span><b>Turbo (mempool)</b></li>
             <li><span>Anti-rug scan</span><b class="pos">Activé</b></li>
@@ -188,7 +188,7 @@
     </div>
   </div>
 
-  <script src="data.js?v=11"></script>
-  <script src="app.js?v=11"></script>
+  <script src="data.js?v=12"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>

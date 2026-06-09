@@ -23,30 +23,58 @@ const pick = (arr) => arr[Math.floor(rng() * arr.length)];
 
 // ---- Univers de memecoins (Trump & co.) ----
 const TOKENS = [
-  { sym: "TRUMP",    name: "Official Trump",  price: 12.40,     color: "#e63946" },
-  { sym: "MELANIA",  name: "Melania Meme",    price: 1.85,      color: "#c9a227" },
-  { sym: "MAGA",     name: "MAGA",            price: 3.20,      color: "#d62828" },
-  { sym: "DOGE",     name: "Dogecoin",        price: 0.38,      color: "#c2a633" },
-  { sym: "PEPE",     name: "Pepe",            price: 0.0000182, color: "#3aa657" },
-  { sym: "SHIB",     name: "Shiba Inu",       price: 0.0000264, color: "#f4a300" },
-  { sym: "WIF",      name: "dogwifhat",       price: 2.95,      color: "#b97a56" },
-  { sym: "BONK",     name: "Bonk",            price: 0.0000345, color: "#ff8a00" },
-  { sym: "POPCAT",   name: "Popcat",          price: 1.42,      color: "#9d6b53" },
-  { sym: "FARTCOIN", name: "Fartcoin",        price: 1.18,      color: "#8ab17d" },
-  { sym: "PNUT",     name: "Peanut Squirrel", price: 0.78,      color: "#a8743b" },
-  { sym: "BRETT",    name: "Brett",           price: 0.14,      color: "#3a7bd5" },
-  { sym: "FLOKI",    name: "Floki",           price: 0.00021,   color: "#f5a623" },
-  { sym: "MOG",      name: "Mog Coin",        price: 0.0000019, color: "#7b61ff" },
-  { sym: "TURBO",    name: "Turbo",           price: 0.0085,    color: "#00b3a4" },
-  { sym: "GIGA",     name: "Gigachad",        price: 0.062,     color: "#6c757d" },
-  { sym: "MOODENG",  name: "Moo Deng",        price: 0.28,      color: "#ff6f91" },
-  { sym: "BODEN",    name: "Jeo Boden",       price: 0.045,     color: "#457b9d" },
+  { sym: "TRUMP",    name: "Official Trump",      price: 11.40,      color: "#e63946" },
+  { sym: "MELANIA",  name: "Melania Meme",        price: 0.62,       color: "#c9a227" },
+  { sym: "MAGA",     name: "MAGA",                price: 3.10,       color: "#d62828" },
+  { sym: "DOGE",     name: "Dogecoin",            price: 0.34,       color: "#c2a633" },
+  { sym: "PEPE",     name: "Pepe",                price: 0.0000178,  color: "#3aa657" },
+  { sym: "SHIB",     name: "Shiba Inu",           price: 0.0000216,  color: "#f4a300" },
+  { sym: "WIF",      name: "dogwifhat",           price: 2.45,       color: "#b97a56" },
+  { sym: "BONK",     name: "Bonk",                price: 0.0000284,  color: "#ff8a00" },
+  { sym: "POPCAT",   name: "Popcat",              price: 1.05,       color: "#9d6b53" },
+  { sym: "FARTCOIN", name: "Fartcoin",            price: 1.18,       color: "#8ab17d" },
+  { sym: "PNUT",     name: "Peanut the Squirrel", price: 0.52,       color: "#a8743b" },
+  { sym: "BRETT",    name: "Brett",               price: 0.11,       color: "#3a7bd5" },
+  { sym: "FLOKI",    name: "Floki",               price: 0.00019,    color: "#f5a623" },
+  { sym: "MOG",      name: "Mog Coin",            price: 0.0000016,  color: "#7b61ff" },
+  { sym: "TURBO",    name: "Turbo",               price: 0.0072,     color: "#00b3a4" },
+  { sym: "GIGA",     name: "Gigachad",            price: 0.048,      color: "#6c757d" },
+  { sym: "MOODENG",  name: "Moo Deng",            price: 0.22,       color: "#ff6f91" },
+  { sym: "BODEN",    name: "Jeo Boden",           price: 0.038,      color: "#457b9d" },
+  { sym: "WOJAK",    name: "Wojak",               price: 0.00042,    color: "#6ab04c" },
+  { sym: "BOME",     name: "Book of Meme",        price: 0.0085,     color: "#e056fd" },
+  { sym: "SLERF",    name: "Slerf",               price: 0.18,       color: "#4834d4" },
+  { sym: "MEW",      name: "cat in a dogs world", price: 0.0072,     color: "#f0932b" },
+  { sym: "GOAT",     name: "Goatseus Maximus",    price: 0.52,       color: "#8bc34a" },
+  { sym: "ACT",      name: "Act I : The Prophecy", price: 0.14,      color: "#535c68" },
+  { sym: "NEIRO",    name: "Neiro",               price: 0.0011,     color: "#ff7979" },
+  { sym: "CHILLGUY", name: "Just a chill guy",    price: 0.085,      color: "#7ed6df" },
+  { sym: "PONKE",    name: "Ponke",               price: 0.31,       color: "#e1b12c" },
+  { sym: "MUMU",     name: "Mumu the Bull",       price: 0.000018,   color: "#eb4d4b" },
+  { sym: "SPX",      name: "SPX6900",             price: 0.95,       color: "#22a6b3" },
+  { sym: "APU",      name: "Apu Apustaja",        price: 0.0012,     color: "#26de81" },
+  { sym: "DEGEN",    name: "Degen",               price: 0.0072,     color: "#8e44ad" },
+  { sym: "TOSHI",    name: "Toshi",               price: 0.00038,    color: "#0984e3" },
+  { sym: "RETARDIO", name: "Retardio",            price: 0.12,       color: "#fd79a8" },
+  { sym: "FWOG",     name: "Fwog",                price: 0.085,      color: "#55efc4" },
+  { sym: "MICHI",    name: "Michi",               price: 0.21,       color: "#fab1a0" },
+  { sym: "BILLY",    name: "Billy",               price: 0.045,      color: "#74b9ff" },
+  { sym: "GME",      name: "GME (Solana)",        price: 0.012,      color: "#e84393" },
+  { sym: "ANDY",     name: "Andy",                price: 0.00021,    color: "#00cec9" },
+  { sym: "HIPPO",    name: "sudeng (Hippo)",      price: 0.0023,     color: "#636e72" },
+  { sym: "PEIPEI",   name: "PeiPei",              price: 0.00000045, color: "#ff6b81" },
+  { sym: "KENDU",    name: "Kendu Inu",           price: 0.00000032, color: "#f9ca24" },
+  { sym: "LADYS",    name: "Milady Meme Coin",    price: 0.00000012, color: "#c56cf0" },
+  { sym: "SUNDOG",   name: "Sundog",              price: 0.045,      color: "#f6b93b" },
+  { sym: "ZEREBRO",  name: "Zerebro",             price: 0.18,       color: "#786fa6" },
+  { sym: "AIXBT",    name: "aixbt by Virtuals",   price: 0.32,       color: "#34ace0" },
+  { sym: "LOCKIN",   name: "Lock In",             price: 0.042,      color: "#ffb142" },
 ];
 
 // ---- Paramètres de l'historique ----
 const START_BALANCE = 0.10;
 const END_BALANCE = 16.40;
-const N_TRADES = 431;
+const N_TRADES = 623;
 const START_DATE = new Date("2025-02-01T00:00:00Z").getTime();
 const END_DATE = new Date("2026-01-31T23:00:00Z").getTime();
 
@@ -98,12 +126,16 @@ function buildTrades() {
   }
   times.sort((a, b) => a - b);
 
+  let lastSym = null;
   for (let i = 0; i < N_TRADES; i++) {
     const prev = balances[i];
     const curr = balances[i + 1];
     const pnl = curr - prev;
     const win = pnl >= 0;
-    const token = pick(TOKENS);
+    // jamais deux fois le même coin d'affilée
+    let token = pick(TOKENS);
+    while (token.sym === lastSym) token = pick(TOKENS);
+    lastSym = token.sym;
 
     // Rendement sur la position, cohérent avec la stratégie (TP +85% / SL -22%) :
     //  - gains : la plupart entre +6% et le take-profit +85%, + quelques "runners"

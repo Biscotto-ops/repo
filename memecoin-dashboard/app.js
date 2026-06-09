@@ -349,9 +349,9 @@ function openPositionModal(uid) {
       <span class="tok-badge" style="background:${p.tk.color}">${p.tk.sym[0]}</span>
       <div>
         <div class="m-title">${p.tk.sym} <span class="muted-sm">${p.tk.name}</span></div>
-        <div class="muted-sm">Ouverte ${timeAgo(p.opened)} · <span class="pos">EN COURS</span></div>
+        <div class="muted-sm">Ouverte ${timeAgo(p.opened)} · ${botActive ? '<span class="pos">EN COURS</span>' : '<span class="neg">suivi en pause</span>'}</div>
       </div>
-      <span class="live-tag" style="margin-left:auto"><span class="status-dot"></span>LIVE</span>
+      <span class="live-tag ${botActive ? "" : "paused"}" style="margin-left:auto"><span class="status-dot"></span>${botActive ? "LIVE" : "EN PAUSE"}</span>
     </div>
     <div class="m-pnl ${cls}">${fmtEthSigned(pl, 4)} <span class="muted-sm">(${fmtPct(p.pnlPct * 100)})</span></div>
     <div class="m-grid">
@@ -518,42 +518,44 @@ function openStrategyModal() {
 //  LOGS (terminal d'activité du bot)
 // =========================================================================
 function pad2(x) { return String(x).padStart(2, "0"); }
-function clockStr(t) {
+function logStamp(t) {
   const d = new Date(t);
-  return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
+  // date + heure → cohérent avec la période de l'historique
+  return `${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth() + 1)} ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
 }
 const rPick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-function buildLogs(cycles) {
+// Logs construits À PARTIR des vrais trades → mêmes tokens, dates et montants
+function buildLogsFromTrades(count) {
+  const recent = trades.slice(-count); // les plus récents (jan. 2026)
   const out = [];
-  let t = Date.now() - cycles * 55000;
-  for (let c = 0; c < cycles; c++) {
-    const tk = rPick(TOKENS);
-    const addr = "0x" + hexHash((Math.random() * 1e9) | 0, 5) + "…" + hexHash((Math.random() * 1e9) | 0, 4);
-    const price = "$" + fmtPriceJS(tk.price * (0.6 + Math.random() * 1.1));
-    const size = (0.2 + Math.random() * 2.3).toFixed(3);
-    const gas = (6 + ((Math.random() * 60) | 0)) + " Gwei";
-    const slip = (2 + Math.random() * 9).toFixed(1) + "%";
+  recent.forEach((t) => {
+    const base = t.time;
+    const sym = t.token.sym;
+    const addr = "0x" + hexHash(t.id * 9 + 1, 5) + "…" + hexHash(t.id * 9 + 7, 4);
+    const gas = (6 + (t.id * 7) % 58) + " Gwei";
+    const slip = (2 + (t.id * 3) % 8) + "." + (t.id % 10) + "%";
+    const top10 = 18 + (t.id % 27);
 
-    t += 9000 + Math.random() * 28000;
-    out.push({ t, type: "SCAN", msg: `Nouvelle paire détectée $${tk.sym} ${addr}` });
-    t += 1100 + Math.random() * 1800;
-    if (Math.random() < 0.17) {
-      out.push({ t, type: "RUG", msg: `$${tk.sym} — honeypot / LP non lockée, position ignorée` });
-      continue;
+    // de temps en temps, une paire scannée puis ignorée (rug)
+    if (t.id % 4 === 0) {
+      const rt = rPick(TOKENS);
+      out.push({ t: base - 47000, type: "SCAN", msg: `Nouvelle paire détectée $${rt.sym} 0x${hexHash(t.id * 5, 5)}…${hexHash(t.id * 5 + 2, 4)}` });
+      out.push({ t: base - 45000, type: "RUG", msg: `$${rt.sym} — honeypot / LP non lockée, position ignorée` });
     }
-    out.push({ t, type: "OK", msg: `Anti-rug $${tk.sym} OK · LP lockée ✓ · contrat vérifié ✓ · top10 ${(20 + (Math.random() * 25) | 0)}%` });
-    t += 700 + Math.random() * 1400;
-    out.push({ t, type: "BUY", msg: `Achat ${size} ETH $${tk.sym} @ ${price} · gas ${gas} · slip ${slip}` });
-    t += 50000 + Math.random() * 320000;
-    if (Math.random() < 0.72) {
-      const g = (+size * (0.1 + Math.random() * 0.75)).toFixed(3);
-      out.push({ t, type: "TP", msg: `Take-profit $${tk.sym} déclenché → +${g} ETH · position clôturée` });
+
+    out.push({ t: base - 32000, type: "SCAN", msg: `Nouvelle paire détectée $${sym} ${addr}` });
+    out.push({ t: base - 29000, type: "OK", msg: `Anti-rug $${sym} OK · LP lockée ✓ · contrat vérifié ✓ · top10 ${top10}%` });
+    out.push({ t: base - 26000, type: "BUY", msg: `Achat ${t.size.toFixed(3)} ETH $${sym} @ $${fmtPriceJS(t.entry)} · gas ${gas} · slip ${slip}` });
+
+    if (t.pnl >= 0) {
+      const label = t.pct > 90 ? "Sortie runner" : "Take-profit";
+      out.push({ t: base, type: "TP", msg: `${label} $${sym} → +${t.pnl.toFixed(3)} ETH · vendu @ $${fmtPriceJS(t.exit)}` });
     } else {
-      const l = (+size * (0.05 + Math.random() * 0.17)).toFixed(3);
-      out.push({ t, type: "SL", msg: `Stop-loss $${tk.sym} déclenché → -${l} ETH · position fermée` });
+      const label = t.pct < -25 ? "Sortie d'urgence (slippage)" : "Stop-loss";
+      out.push({ t: base, type: "SL", msg: `${label} $${sym} → ${t.pnl.toFixed(3)} ETH · sorti @ $${fmtPriceJS(t.exit)}` });
     }
-  }
+  });
   return out.reverse(); // plus récent en haut
 }
 
@@ -561,20 +563,23 @@ const LOG_TAG = {
   SCAN: "SCAN", OK: "SAFE", RUG: "RUG", BUY: "BUY", TP: "TP", SL: "SL",
 };
 function openLogsModal() {
-  const logs = buildLogs(26);
+  const logs = buildLogsFromTrades(22);
   const rows = logs
     .map((l) => `<div class="log-line">
-      <span class="log-t">${clockStr(l.t)}</span>
+      <span class="log-t">${logStamp(l.t)}</span>
       <span class="log-tag ${l.type}">${LOG_TAG[l.type]}</span>
       <span class="log-msg">${l.msg}</span>
     </div>`)
     .join("");
+  const state = botActive
+    ? '<span class="pos">moteur actif</span>'
+    : '<span class="neg">bot en pause</span> · dernière session (jan. 2026)';
   openModal(`
     <div class="m-head">
       <span class="x-logo" style="background:#000;color:#1fd17b;font-family:var(--mono)">›_</span>
       <div>
         <div class="m-title">Logs d'exécution</div>
-        <div class="muted-sm">Journal du moteur · ${botActive ? '<span class="pos">live</span>' : '<span class="neg">bot en pause</span>'}</div>
+        <div class="muted-sm">Journal du moteur · ${state}</div>
       </div>
     </div>
     <div class="log-term">${rows}</div>
@@ -593,6 +598,11 @@ function setBot(active) {
   const label = document.getElementById("botStatus");
   pill.classList.toggle("off", !active);
   label.textContent = active ? "BOT ACTIF" : "BOT DÉSACTIVÉ";
+  // badges LIVE/EN PAUSE cohérents avec l'état du bot
+  document.querySelectorAll(".live-tag").forEach((el) => {
+    el.classList.toggle("paused", !active);
+    el.innerHTML = `<span class="status-dot"></span>${active ? "LIVE" : "EN PAUSE"}`;
+  });
 }
 
 function loopTweet() {

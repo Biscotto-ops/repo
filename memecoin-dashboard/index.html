@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlphaSnipe — Memecoin Trading Bot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ============ TOP BAR ============ -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">◈</div>
+      <div class="brand-text">
+        <span class="brand-name">AlphaSnipe</span>
+        <span class="brand-sub">Memecoin Sniper Bot</span>
+      </div>
+    </div>
+
+    <nav class="topnav">
+      <a class="active">Dashboard</a>
+      <a>Positions</a>
+      <a>Stratégie</a>
+      <a>Logs</a>
+    </nav>
+
+    <div class="topbar-right">
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        <span id="botStatus">BOT ACTIF</span>
+      </div>
+      <div class="wallet">
+        <span class="wallet-net">Ethereum</span>
+        <span class="wallet-addr" id="walletAddr">0x7a3f…E91c</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ============ STAT CARDS ============ -->
+    <section class="stats-grid">
+      <div class="stat-card highlight">
+        <div class="stat-label">Valeur du portefeuille</div>
+        <div class="stat-value" id="statBalance">— ETH</div>
+        <div class="stat-sub" id="statBalanceUsd">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">P&amp;L Total</div>
+        <div class="stat-value pos" id="statPnl">—</div>
+        <div class="stat-sub pos" id="statRoi">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Taux de réussite</div>
+        <div class="stat-value" id="statWinrate">—</div>
+        <div class="stat-sub" id="statWinLoss">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Trades exécutés</div>
+        <div class="stat-value" id="statTrades">—</div>
+        <div class="stat-sub" id="statRange">Fév. 2025 → Jan. 2026</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Meilleur trade</div>
+        <div class="stat-value pos" id="statBest">—</div>
+        <div class="stat-sub" id="statBestToken">—</div>
+      </div>
+    </section>
+
+    <div class="main-grid">
+      <!-- ============ LEFT COLUMN ============ -->
+      <div class="col-left">
+        <section class="panel chart-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Courbe d'équité</h2>
+              <p class="panel-sub">Solde du portefeuille — 0.10 ETH de capital initial</p>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-start">Départ 0.10 ETH</span>
+              <span class="legend-end" id="legendEnd">16.40 ETH</span>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="equityChart"></canvas>
+            <div id="chartTip" class="chart-tip"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Historique des trades</h2>
+              <p class="panel-sub"><span id="historyCount">—</span> transactions on-chain</p>
+            </div>
+            <div class="filter-row">
+              <button class="chip active" data-filter="all">Tous</button>
+              <button class="chip" data-filter="win">Gains</button>
+              <button class="chip" data-filter="loss">Pertes</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="trade-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Token</th>
+                  <th>Sens</th>
+                  <th class="num">Taille</th>
+                  <th class="num">Entrée</th>
+                  <th class="num">Sortie</th>
+                  <th class="num">P&amp;L</th>
+                  <th class="num">%</th>
+                  <th class="num">Solde</th>
+                </tr>
+              </thead>
+              <tbody id="tradeBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- ============ RIGHT COLUMN ============ -->
+      <div class="col-right">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Watchlist memecoins</h2>
+            <span class="live-tag"><span class="status-dot"></span>LIVE</span>
+          </div>
+          <div id="watchlist" class="watchlist"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Positions ouvertes</h2></div>
+          <div id="openPositions" class="positions"></div>
+        </section>
+
+        <section class="panel strategy">
+          <div class="panel-head"><h2>Configuration du bot</h2></div>
+          <ul class="config-list">
+            <li><span>Stratégie</span><b>Sniper + Momentum</b></li>
+            <li><span>Slippage max</span><b>12%</b></li>
+            <li><span>Take profit</span><b>+85%</b></li>
+            <li><span>Stop loss</span><b>-22%</b></li>
+            <li><span>Taille position</span><b>Dynamique (Kelly)</b></li>
+            <li><span>Gas priority</span><b>Turbo (mempool)</b></li>
+            <li><span>Anti-rug scan</span><b class="pos">Activé</b></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span>AlphaSnipe Dashboard — interface de démonstration. Données simulées, à but illustratif uniquement.</span>
+    </footer>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

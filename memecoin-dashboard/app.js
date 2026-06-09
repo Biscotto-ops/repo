@@ -368,38 +368,6 @@ function openPositionModal(uid) {
 }
 
 // =========================================================================
-//  TICKER TAPE (prix défilants)
-// =========================================================================
-const tickerState = TOKENS.map((tk) => ({
-  ...tk, cur: tk.price, chg: (Math.random() - 0.4) * 60,
-}));
-
-function tickerItemHtml(tk) {
-  const cls = tk.chg >= 0 ? "pos" : "neg";
-  const arrow = tk.chg >= 0 ? "▲" : "▼";
-  return `<span class="tick-item">
-    <span class="tick-sym" style="color:${tk.color}">${tk.sym}</span>
-    <span class="tick-price">$${fmtPriceJS(tk.cur)}</span>
-    <span class="tick-chg ${cls}">${arrow} ${Math.abs(tk.chg).toFixed(1)}%</span>
-  </span>`;
-}
-
-function renderTicker() {
-  // dupliqué x2 pour un défilement en boucle continue
-  const html = tickerState.map(tickerItemHtml).join("");
-  document.getElementById("tickerTrack").innerHTML = html + html;
-}
-
-function tickTicker() {
-  tickerState.forEach((tk) => {
-    const move = (Math.random() - 0.5) * 0.04;
-    tk.cur = Math.max(tk.cur * (1 + move), tk.price * 0.2);
-    tk.chg = Math.max(-95, Math.min(900, tk.chg + (Math.random() - 0.5) * 2));
-  });
-  renderTicker();
-}
-
-// =========================================================================
 //  TWITTER / X FEED
 // =========================================================================
 const MAX_TWEETS = 16;
@@ -624,12 +592,10 @@ function init() {
   drawChart();
   initChartHover();
   renderPositions();
-  renderTicker();
   renderTweets();
   renderNews();
 
   // Boucles live (gelées quand le bot est désactivé)
-  setInterval(() => { if (botActive) tickTicker(); }, 3000);
   setInterval(() => { if (botActive) tickPositions(); }, 2600);
   setInterval(() => { renderPositions(); }, 30000); // rafraîchit l'âge des positions
   loopTweet();

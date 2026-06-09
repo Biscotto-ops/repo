@@ -46,7 +46,7 @@ const TOKENS = [
 // ---- Paramètres de l'historique ----
 const START_BALANCE = 0.10;
 const END_BALANCE = 16.40;
-const N_TRADES = 168;
+const N_TRADES = 431;
 const START_DATE = new Date("2025-02-01T00:00:00Z").getTime();
 const END_DATE = new Date("2026-01-31T23:00:00Z").getTime();
 
@@ -64,7 +64,8 @@ function buildEquityCurve() {
     const g = (rng() + rng() + rng() - 1.5) * 2;
     walk.push(walk[i - 1] + g);
   }
-  const sigma = 0.058; // amplitude du bruit → ~30% de trades perdants
+  // amplitude du bruit calibrée sur le nb de trades → garde ~70% de gains
+  const sigma = (5.0 / N_TRADES) / 0.55;
   const wEnd = walk[N_TRADES];
 
   const balances = [];

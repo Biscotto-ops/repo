@@ -152,7 +152,8 @@ function drawChart() {
 
   // labels de mois sur X
   ctx.textAlign = "center";
-  const labelIdx = [0, 28, 56, 84, 112, 140, balances.length - 1];
+  const lastIdx = balances.length - 1;
+  const labelIdx = Array.from({ length: 7 }, (_, k) => Math.round((k * lastIdx) / 6));
   labelIdx.forEach((i) => {
     const tIdx = Math.min(i, trades.length - 1);
     const t = i === 0 ? START_DATE : trades[tIdx] ? trades[tIdx].time : END_DATE;
@@ -217,78 +218,6 @@ function initChartHover() {
     tip.innerHTML = `<b>${nearest.v.toFixed(3)} ETH</b><br><span style="color:#8b90a3">${fmtDate(t)}</span>`;
   });
   canvas.addEventListener("mouseleave", () => (document.getElementById("chartTip").style.opacity = 0));
-}
-
-// =========================================================================
-//  WATCHLIST (prix "live" qui bougent)
-// =========================================================================
-const watchState = TOKENS.slice(0, 9).map((tk) => ({
-  ...tk,
-  cur: tk.price,
-  chg: (Math.random() - 0.35) * 40,
-  hist: Array.from({ length: 16 }, () => 0.5 + Math.random()),
-}));
-
-function renderWatchlist() {
-  const el = document.getElementById("watchlist");
-  el.innerHTML = watchState
-    .map((tk, idx) => {
-      const cls = tk.chg >= 0 ? "pos" : "neg";
-      return `<div class="watch-row">
-        <span class="tok-badge" style="background:${tk.color}">${tk.sym[0]}</span>
-        <div class="watch-main">
-          <span class="watch-sym">${tk.sym}</span>
-          <span class="watch-name">${tk.name}</span>
-        </div>
-        <canvas class="spark" data-i="${idx}"></canvas>
-        <div class="watch-right">
-          <div class="watch-price">$${fmtPriceJS(tk.cur)}</div>
-          <div class="watch-chg ${cls}">${fmtPct(tk.chg)}</div>
-        </div>
-      </div>`;
-    })
-    .join("");
-  drawSparks();
-}
-
-function drawSparks() {
-  document.querySelectorAll(".spark").forEach((cv) => {
-    const tk = watchState[+cv.dataset.i];
-    const ctx = cv.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
-    const w = cv.clientWidth || 64, h = cv.clientHeight || 26;
-    cv.width = w * dpr; cv.height = h * dpr; ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, w, h);
-    const mn = Math.min(...tk.hist), mx = Math.max(...tk.hist);
-    const col = tk.chg >= 0 ? "#1fd17b" : "#ff5470";
-    ctx.beginPath();
-    tk.hist.forEach((v, i) => {
-      const xx = (i / (tk.hist.length - 1)) * w;
-      const yy = h - ((v - mn) / (mx - mn || 1)) * (h - 4) - 2;
-      i === 0 ? ctx.moveTo(xx, yy) : ctx.lineTo(xx, yy);
-    });
-    ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
-  });
-}
-
-function tickWatchlist() {
-  watchState.forEach((tk) => {
-    const move = (Math.random() - 0.5) * 0.05;
-    tk.cur = Math.max(tk.cur * (1 + move), tk.price * 0.2);
-    tk.chg = Math.max(-95, tk.chg + (Math.random() - 0.5) * 3);
-    tk.hist.push(tk.hist[tk.hist.length - 1] * (1 + move));
-    tk.hist.shift();
-  });
-  // mise à jour ciblée des prix sans tout reconstruire
-  document.querySelectorAll(".watch-row").forEach((row, i) => {
-    const tk = watchState[i];
-    const cls = tk.chg >= 0 ? "pos" : "neg";
-    row.querySelector(".watch-price").textContent = "$" + fmtPriceJS(tk.cur);
-    const chg = row.querySelector(".watch-chg");
-    chg.textContent = fmtPct(tk.chg);
-    chg.className = "watch-chg " + cls;
-  });
-  drawSparks();
 }
 
 // =========================================================================
@@ -444,17 +373,15 @@ function init() {
   initFilters();
   drawChart();
   initChartHover();
-  renderWatchlist();
   renderPositions();
   renderTicker();
   renderTweets();
   renderNews();
 
-  setInterval(tickWatchlist, 1500);
   setInterval(tickTicker, 2000);
   setInterval(pushTweet, 5000);
   setInterval(pushNews, 11000);
-  window.addEventListener("resize", () => { drawChart(); drawSparks(); });
+  window.addEventListener("resize", drawChart);
 }
 
 document.addEventListener("DOMContentLoaded", init);

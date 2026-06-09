@@ -28,7 +28,7 @@ function renderStats() {
   const best = trades.reduce((m, t) => (t.pnl > m.pnl ? t : m), trades[0]);
 
   document.getElementById("statBalance").textContent = fmtEth(finalBal);
-  document.getElementById("statBalanceUsd").textContent = "Capital initial : 0.10 ETH";
+  document.getElementById("statBalanceUsd").textContent = "";
   document.getElementById("statPnl").textContent = fmtEthSigned(pnl, 2);
   document.getElementById("statRoi").textContent = "réalisé depuis fév. 2025";
   document.getElementById("statWinrate").textContent = `${winrate.toFixed(1)}%`;

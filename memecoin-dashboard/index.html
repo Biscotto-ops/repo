@@ -35,8 +35,14 @@
         <span class="wallet-net">Ethereum</span>
         <span class="wallet-addr" id="walletAddr">0x7a3f…E91c</span>
       </div>
+      <span class="demo-badge" title="Données simulées">DÉMO</span>
     </div>
   </header>
+
+  <!-- ============ TICKER TAPE ============ -->
+  <div class="ticker">
+    <div class="ticker-track" id="tickerTrack"></div>
+  </div>
 
   <main class="layout">
     <!-- ============ STAT CARDS ============ -->
@@ -151,8 +157,36 @@
       </div>
     </div>
 
+    <!-- ============ SOCIAL : TWITTER + NEWS ============ -->
+    <section class="social-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="x-head">
+            <span class="x-logo">𝕏</span>
+            <div>
+              <h2>Twitter / X Tracker</h2>
+              <p class="panel-sub">Signaux memecoins en temps réel</p>
+            </div>
+          </div>
+          <span class="live-tag"><span class="status-dot"></span>LIVE</span>
+        </div>
+        <div id="xFeed" class="x-feed"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>News Tracker</h2>
+            <p class="panel-sub">Dépêches crypto agrégées</p>
+          </div>
+          <span class="live-tag"><span class="status-dot"></span>LIVE</span>
+        </div>
+        <div id="newsFeed" class="news-feed"></div>
+      </div>
+    </section>
+
     <footer class="footer">
-      <span>AlphaSnipe Dashboard — interface de démonstration. Données simulées, à but illustratif uniquement.</span>
+      <span>AlphaSnipe Dashboard · interface de démonstration</span>
     </footer>
   </main>
 

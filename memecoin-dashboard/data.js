@@ -128,3 +128,81 @@ function buildTrades() {
 }
 
 const DATA = buildTrades();
+
+/* =========================================================================
+   FEED SOCIAL — comptes X/Twitter fictifs & dépêches (contenu généré)
+   ========================================================================= */
+
+// Personas crypto (fictifs, pour éviter d'usurper de vrais comptes)
+const X_ACCOUNTS = [
+  { name: "Degen Alpha",     handle: "@degenalpha",   color: "#1d9bf0", verified: true },
+  { name: "Solana Sniper",   handle: "@solsniperx",   color: "#14f195", verified: true },
+  { name: "Meme Lord",       handle: "@memelord_eth", color: "#7c5cff", verified: false },
+  { name: "Whale Alert HQ",  handle: "@whalealerthq", color: "#ff8a00", verified: true },
+  { name: "CT Insider",      handle: "@ct_insider",   color: "#ff5470", verified: true },
+  { name: "Chain Watcher",   handle: "@chainwatch",   color: "#00d6ff", verified: false },
+  { name: "Rug Radar",       handle: "@rugradar",     color: "#ffc24b", verified: true },
+  { name: "0xMoonboy",       handle: "@0xmoonboy",    color: "#1fd17b", verified: false },
+];
+
+const TWEET_TEMPLATES = [
+  (t) => `🚨 $${t.sym} vient d'exploser +${randInt(28, 220)}% sur les dernières heures. Le volume on-chain est dingue. 🔥`,
+  (t) => `Accumulation massive sur $${t.sym} détectée. Une whale vient d'acheter ${randInt(4, 60)} ETH. 🐋`,
+  (t) => `$${t.sym} flippe la résistance. Si ça tient, prochain leg vers un nouvel ATH. 📈`,
+  (t) => `Narrative du jour : $${t.sym}. Le ratio holders/volume n'a jamais été aussi bullish.`,
+  (t) => `gm. Toujours long $${t.sym}. La communauté est increvable, le chart parle de lui-même. ☕`,
+  (t) => `Liquidité lockée ✅ contrat vérifié ✅ $${t.sym} passe le scan anti-rug haut la main.`,
+  (t) => `Alerte momentum 🟢 $${t.sym} : +${randInt(12, 90)}% en 1h, achats qui s'accélèrent dans le mempool.`,
+  (t) => `$${t.sym} trend #1 sur les DEX aujourd'hui. Le smart money est déjà positionné.`,
+];
+
+function buildTweets(n) {
+  const out = [];
+  let t = Date.now();
+  for (let i = 0; i < n; i++) {
+    const acc = pick(X_ACCOUNTS);
+    const tok = pick(TOKENS);
+    t -= randInt(40, 600) * 1000; // espacement temporel décroissant
+    out.push({
+      acc,
+      text: pick(TWEET_TEMPLATES)(tok),
+      time: t,
+      likes: randInt(120, 14800),
+      reposts: randInt(30, 4200),
+      views: randInt(8, 980),
+    });
+  }
+  return out;
+}
+
+// Dépêches "news"
+const NEWS_SOURCES = ["CoinDesk", "Cointelegraph", "Decrypt", "The Block", "DL News"];
+const NEWS_TEMPLATES = [
+  (t) => ({ title: `$${t.sym} bondit alors que les volumes sur les DEX atteignent un record`, tag: "bullish" }),
+  (t) => ({ title: `Les memecoins mènent le marché : $${t.sym} en tête des gagnants du jour`, tag: "bullish" }),
+  (t) => ({ title: `Une baleine déplace ${randInt(3, 40)} ETH vers $${t.sym}, selon les données on-chain`, tag: "neutral" }),
+  (t) => ({ title: `$${t.sym} listé sur une nouvelle plateforme, la liquidité grimpe de ${randInt(20, 140)}%`, tag: "bullish" }),
+  (t) => ({ title: `Prudence : $${t.sym} corrige de ${randInt(8, 35)}% après un rallye parabolique`, tag: "bearish" }),
+  (t) => ({ title: `Le secteur memecoin dépasse les ${randInt(40, 120)} Md$ de capitalisation`, tag: "bullish" }),
+  (t) => ({ title: `Analyse : pourquoi $${t.sym} attire les traders algorithmiques`, tag: "neutral" }),
+];
+
+function buildNews(n) {
+  const out = [];
+  let t = Date.now();
+  for (let i = 0; i < n; i++) {
+    const tok = pick(TOKENS);
+    const tmpl = pick(NEWS_TEMPLATES)(tok);
+    t -= randInt(8, 70) * 60 * 1000;
+    out.push({ ...tmpl, source: pick(NEWS_SOURCES), time: t, tok });
+  }
+  return out;
+}
+
+const SOCIAL = {
+  tweets: buildTweets(14),
+  news: buildNews(9),
+  // générateurs exposés pour les mises à jour "live"
+  newTweet: () => buildTweets(1)[0],
+  newNews: () => buildNews(1)[0],
+};

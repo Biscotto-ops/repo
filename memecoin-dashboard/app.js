@@ -320,6 +320,122 @@ function renderPositions() {
 }
 
 // =========================================================================
+//  TICKER TAPE (prix défilants)
+// =========================================================================
+const tickerState = TOKENS.map((tk) => ({
+  ...tk, cur: tk.price, chg: (Math.random() - 0.4) * 60,
+}));
+
+function tickerItemHtml(tk) {
+  const cls = tk.chg >= 0 ? "pos" : "neg";
+  const arrow = tk.chg >= 0 ? "▲" : "▼";
+  return `<span class="tick-item">
+    <span class="tick-sym" style="color:${tk.color}">${tk.sym}</span>
+    <span class="tick-price">$${fmtPriceJS(tk.cur)}</span>
+    <span class="tick-chg ${cls}">${arrow} ${Math.abs(tk.chg).toFixed(1)}%</span>
+  </span>`;
+}
+
+function renderTicker() {
+  // dupliqué x2 pour un défilement en boucle continue
+  const html = tickerState.map(tickerItemHtml).join("");
+  document.getElementById("tickerTrack").innerHTML = html + html;
+}
+
+function tickTicker() {
+  tickerState.forEach((tk) => {
+    const move = (Math.random() - 0.5) * 0.04;
+    tk.cur = Math.max(tk.cur * (1 + move), tk.price * 0.2);
+    tk.chg = Math.max(-95, Math.min(900, tk.chg + (Math.random() - 0.5) * 2));
+  });
+  renderTicker();
+}
+
+// =========================================================================
+//  TWITTER / X FEED
+// =========================================================================
+const MAX_TWEETS = 16;
+
+function timeAgo(t) {
+  const s = Math.max(1, Math.floor((Date.now() - t) / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}j`;
+}
+function compact(n) {
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+  return n + "";
+}
+
+function tweetHtml(tw) {
+  return `<div class="tweet">
+    <span class="tweet-av" style="background:${tw.acc.color}">${tw.acc.name[0]}</span>
+    <div class="tweet-body">
+      <div class="tweet-top">
+        <span class="tweet-name">${tw.acc.name}</span>
+        ${tw.acc.verified ? '<span class="tweet-verif">✔</span>' : ""}
+        <span class="tweet-handle">${tw.acc.handle}</span>
+        <span class="tweet-time">· ${timeAgo(tw.time)}</span>
+      </div>
+      <div class="tweet-text">${tw.text}</div>
+      <div class="tweet-stats">
+        <span>💬 ${compact(tw.reposts >> 3)}</span>
+        <span>🔁 ${compact(tw.reposts)}</span>
+        <span>❤ ${compact(tw.likes)}</span>
+        <span>📊 ${tw.views}k</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+let tweets = [...SOCIAL.tweets];
+function renderTweets() {
+  document.getElementById("xFeed").innerHTML = tweets.map(tweetHtml).join("");
+}
+function pushTweet() {
+  const tw = SOCIAL.newTweet();
+  tw.time = Date.now();
+  tweets.unshift(tw);
+  if (tweets.length > MAX_TWEETS) tweets.pop();
+  renderTweets();
+}
+
+// =========================================================================
+//  NEWS FEED
+// =========================================================================
+const MAX_NEWS = 12;
+const TAG_LABEL = { bullish: "Bullish", bearish: "Bearish", neutral: "Neutre" };
+
+function newsHtml(n) {
+  return `<div class="news-item">
+    <span class="news-tok" style="background:${n.tok.color}">${n.tok.sym[0]}</span>
+    <div class="news-body">
+      <div class="news-meta">
+        <span class="news-source">${n.source}</span>
+        <span>· ${timeAgo(n.time)}</span>
+        <span class="tag ${n.tag}">${TAG_LABEL[n.tag]}</span>
+      </div>
+      <div class="news-title">${n.title}</div>
+    </div>
+  </div>`;
+}
+
+let news = [...SOCIAL.news];
+function renderNews() {
+  document.getElementById("newsFeed").innerHTML = news.map(newsHtml).join("");
+}
+function pushNews() {
+  const n = SOCIAL.newNews();
+  n.time = Date.now();
+  news.unshift(n);
+  if (news.length > MAX_NEWS) news.pop();
+  renderNews();
+}
+
+// =========================================================================
 //  INIT
 // =========================================================================
 function init() {
@@ -330,8 +446,14 @@ function init() {
   initChartHover();
   renderWatchlist();
   renderPositions();
+  renderTicker();
+  renderTweets();
+  renderNews();
 
   setInterval(tickWatchlist, 1500);
+  setInterval(tickTicker, 2000);
+  setInterval(pushTweet, 5000);
+  setInterval(pushNews, 11000);
   window.addEventListener("resize", () => { drawChart(); drawSparks(); });
 }
 

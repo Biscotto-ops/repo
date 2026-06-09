@@ -94,6 +94,32 @@ body {
 .wallet-net { font-size: 10px; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.5px; }
 .wallet-addr { font-family: var(--mono); font-size: 13px; font-weight: 500; }
 
+.demo-badge {
+  font-size: 10px; font-weight: 800; letter-spacing: 1px;
+  color: var(--muted); border: 1px solid var(--border);
+  padding: 4px 8px; border-radius: 6px; background: var(--panel);
+}
+
+/* ---------- Ticker tape ---------- */
+.ticker {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+  overflow: hidden;
+  position: sticky; top: 69px; z-index: 15;
+}
+.ticker-track {
+  display: inline-flex; gap: 30px;
+  padding: 9px 0;
+  white-space: nowrap;
+  animation: marquee 48s linear infinite;
+}
+.ticker:hover .ticker-track { animation-play-state: paused; }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.tick-item { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
+.tick-sym { font-weight: 700; }
+.tick-price { font-family: var(--mono); color: var(--muted); }
+.tick-chg { font-weight: 700; font-variant-numeric: tabular-nums; }
+
 /* ---------- Layout ---------- */
 .layout { max-width: 1480px; margin: 0 auto; padding: 24px 28px 40px; }
 
@@ -233,6 +259,59 @@ body {
 .config-list span { color: var(--muted); }
 .config-list b { font-weight: 600; }
 
+/* ---------- Social grid (Twitter + News) ---------- */
+.social-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;
+}
+.x-head { display: flex; align-items: center; gap: 12px; }
+.x-logo {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 18px; font-weight: 800;
+  background: #000; color: #fff; border: 1px solid var(--border);
+}
+.x-feed { max-height: 460px; overflow-y: auto; }
+.tweet {
+  display: flex; gap: 11px; padding: 14px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  animation: slideIn 0.45s ease;
+}
+@keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.tweet-av {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; font-weight: 800; color: #0a0b10; font-size: 15px;
+}
+.tweet-body { flex: 1; min-width: 0; }
+.tweet-top { display: flex; align-items: center; gap: 5px; font-size: 13px; flex-wrap: wrap; }
+.tweet-name { font-weight: 700; }
+.tweet-verif { color: #1d9bf0; font-size: 13px; }
+.tweet-handle, .tweet-time { color: var(--muted); }
+.tweet-text { font-size: 13.5px; line-height: 1.45; margin: 4px 0 8px; word-wrap: break-word; }
+.tweet-stats { display: flex; gap: 20px; color: var(--muted); font-size: 12px; }
+.tweet-stats span { display: inline-flex; align-items: center; gap: 5px; }
+
+.news-feed { max-height: 460px; overflow-y: auto; }
+.news-item {
+  display: flex; gap: 12px; padding: 14px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  animation: slideIn 0.45s ease;
+}
+.news-item:hover { background: var(--panel-2); }
+.news-tok {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+  display: grid; place-items: center; font-weight: 800; color: #0a0b10; font-size: 13px;
+}
+.news-body { flex: 1; }
+.news-meta { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.news-source { font-weight: 700; color: var(--text); }
+.news-title { font-size: 13.5px; line-height: 1.4; font-weight: 500; }
+.tag {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.4px;
+  padding: 2px 7px; border-radius: 5px; text-transform: uppercase;
+}
+.tag.bullish { color: var(--green); background: var(--green-soft); }
+.tag.bearish { color: var(--red); background: var(--red-soft); }
+.tag.neutral { color: var(--muted); background: var(--panel-2); }
+
 .footer { margin-top: 26px; text-align: center; color: var(--muted-2); font-size: 12px; }
 
 /* ---------- Scrollbar ---------- */
@@ -243,6 +322,7 @@ body {
 /* ---------- Responsive ---------- */
 @media (max-width: 1180px) {
   .main-grid { grid-template-columns: 1fr; }
+  .social-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .topnav { display: none; }
 }

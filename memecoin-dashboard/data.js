@@ -22,7 +22,7 @@ const randInt = (a, b) => Math.floor(rand(a, b + 1));
 const pick = (arr) => arr[Math.floor(rng() * arr.length)];
 
 // ---- Univers de memecoins (Trump & co.) ----
-const TOKENS = [
+const CURATED = [
   { sym: "TRUMP",    name: "Official Trump",      price: 11.40,      color: "#e63946" },
   { sym: "MELANIA",  name: "Melania Meme",        price: 0.62,       color: "#c9a227" },
   { sym: "MAGA",     name: "MAGA",                price: 3.10,       color: "#d62828" },
@@ -70,6 +70,67 @@ const TOKENS = [
   { sym: "AIXBT",    name: "aixbt by Virtuals",   price: 0.32,       color: "#34ace0" },
   { sym: "LOCKIN",   name: "Lock In",             price: 0.042,      color: "#ffb142" },
 ];
+
+// ---- Génération d'un grand pool de memecoins uniques (≥ nb de trades) ----
+// On garde les vrais coins (CURATED) puis on en génère assez pour que CHAQUE
+// trade puisse avoir un memecoin différent.
+const GEN_PRE = ["Baby", "Mega", "Giga", "Turbo", "Super", "Hyper", "Moon", "Space",
+  "Cyber", "Elon", "Based", "Chad", "King", "Lord", "Captain", "Doctor", "Uncle",
+  "Royal", "Golden", "Diamond", "Cosmic", "Galactic", "Quantum", "Neon", "Pixel",
+  "Retro", "Ultra", "Maga", "Degen", "Floki", "Solana", "Pepe", "Doge", "Sigma"];
+const GEN_ROOT = ["Doge", "Shiba", "Pepe", "Wojak", "Chad", "Frog", "Cat", "Inu",
+  "Ape", "Monke", "Wolf", "Bear", "Bull", "Duck", "Goat", "Hippo", "Snek", "Owl",
+  "Fox", "Lion", "Tiger", "Panda", "Koala", "Sloth", "Llama", "Raccoon", "Otter",
+  "Seal", "Whale", "Shark", "Crab", "Squid", "Turtle", "Bat", "Hamster", "Penguin",
+  "Parrot", "Hawk", "Eagle", "Raven", "Toad", "Gecko", "Dragon", "Dino", "Mouse",
+  "Bunny", "Kitty", "Puppy", "Moth", "Snail"];
+const GEN_SUF = ["Inu", "Coin", "Cat", "Moon", "Rocket", "X", "AI", "DAO", "Fi",
+  "Verse", "World", "Zilla", "Bot", "Swap", "Pump", "2.0"];
+
+function buildTokenPool(target) {
+  const pool = CURATED.slice();
+  const seen = new Set(pool.map((t) => t.sym));
+
+  const uniqSym = (base) => {
+    let s = base.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) || "MEME";
+    let sym = s, k = 1;
+    while (seen.has(sym)) sym = s.slice(0, 7) + (k++).toString(36).toUpperCase();
+    seen.add(sym);
+    return sym;
+  };
+
+  let n = 0;
+  while (pool.length < target) {
+    const type = n % 3;
+    const pre = GEN_PRE[(n * 7) % GEN_PRE.length];
+    const root = GEN_ROOT[n % GEN_ROOT.length];
+    const suf = GEN_SUF[(n * 5) % GEN_SUF.length];
+    let name;
+    if (type === 0) name = `${pre} ${root}`;
+    else if (type === 1) name = `${root} ${suf}`;
+    else name = `${pre} ${root} ${suf}`;
+    n++;
+
+    const sym = uniqSym(name.replace(/[.\s]/g, ""));
+    const price = +Math.pow(10, rand(-8, 0.5)).toPrecision(3);
+    const color = `hsl(${Math.floor(rng() * 360)}, ${58 + Math.floor(rng() * 18)}%, ${50 + Math.floor(rng() * 12)}%)`;
+    pool.push({ sym, name, price, color });
+  }
+  return pool;
+}
+
+// Pool global (plus grand que le nb de trades, 623, pour garantir l'unicité)
+const TOKENS = buildTokenPool(720);
+
+// mélange déterministe (Fisher–Yates avec le PRNG seedé)
+function shuffled(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 // ---- Paramètres de l'historique ----
 const START_BALANCE = 0.10;   // capital de départ
@@ -156,16 +217,15 @@ function buildTrades() {
   }
   times.sort((a, b) => a - b);
 
-  let lastSym = null;
+  // un memecoin DIFFÉRENT par trade : on tire N_TRADES tokens distincts
+  const uniqueTokens = shuffled(TOKENS).slice(0, N_TRADES);
+
   for (let i = 0; i < N_TRADES; i++) {
     const prev = balances[i];
     const curr = balances[i + 1];
     const pnl = curr - prev;
     const win = pnl >= 0;
-    // jamais deux fois le même coin d'affilée
-    let token = pick(TOKENS);
-    while (token.sym === lastSym) token = pick(TOKENS);
-    lastSym = token.sym;
+    const token = uniqueTokens[i]; // unique sur tout l'historique
 
     // Rendement sur la position, cohérent avec la stratégie (TP +85% / SL -22%) :
     //  - gains : la plupart entre +6% et le take-profit +85%, + quelques "runners"

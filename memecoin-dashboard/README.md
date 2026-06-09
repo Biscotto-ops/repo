@@ -6,11 +6,12 @@ memecoins. **Données entièrement simulées, à but de démonstration / illustr
 ## Aperçu
 
 - **Capital initial :** 0.10 ETH
-- **Solde final :** 16.40 ETH
-- **Période :** février 2025 → janvier 2026
-- **168 trades** générés (≈ 71 % de gains, avec de réelles phases de pertes)
-- Memecoins connus : TRUMP, MELANIA, MAGA, DOGE, PEPE, SHIB, WIF, BONK,
-  POPCAT, FARTCOIN, PNUT, BRETT, FLOKI, MOG, TURBO…
+- **Sommet :** 15.4 ETH — puis série perdante finale → **solde final 14.7 ETH**
+- **Période :** 3 février 2025 → 28 janvier 2026 (bot ensuite arrêté)
+- **623 trades** générés (≈ 70 % de gains au global ; les 35 derniers, dès le
+  24 janvier, sont de petits trades à 85 % perdants)
+- 46 memecoins connus : TRUMP, MELANIA, MAGA, DOGE, PEPE, SHIB, WIF, BONK,
+  POPCAT, FARTCOIN, PNUT, BRETT, FLOKI, MOG, GOAT, PONKE, SPX, DEGEN…
 
 ## Fonctionnalités
 

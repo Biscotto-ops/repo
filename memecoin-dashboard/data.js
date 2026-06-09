@@ -72,38 +72,61 @@ const TOKENS = [
 ];
 
 // ---- Paramètres de l'historique ----
-const START_BALANCE = 0.10;
-const END_BALANCE = 16.40;
+const START_BALANCE = 0.10;   // capital de départ
+const PEAK_BALANCE = 15.4;    // sommet atteint juste avant le retournement
+const FINAL_BALANCE = 14.7;   // solde final après la série perdante
 const N_TRADES = 623;
-const START_DATE = new Date("2025-02-01T00:00:00Z").getTime();
-const END_DATE = new Date("2026-01-31T23:00:00Z").getTime();
+const TAIL_TRADES = 35;        // les 35 derniers (série majoritairement perdante)
+const TAIL_LOSS_RATE = 0.85;   // 85% de ces trades sont perdants
+const START_DATE = new Date("2025-02-03T00:00:00Z").getTime();
+const PIVOT_DATE = new Date("2026-01-24T00:00:00Z").getTime(); // début de la série perdante
+const END_DATE = new Date("2026-01-28T20:00:00Z").getTime();
 
-// Courbe d'équité = dérive log linéaire (0.10→16.40) + pont brownien (bruit nul aux extrémités)
-// => le solde final vaut EXACTEMENT 16.40 ETH, avec des phases de pertes réalistes.
+// Courbe d'équité :
+//   Phase 1 — 0.10 → 15.4 ETH (dérive log + pont brownien) sur les premiers trades
+//   Phase 2 — 15.4 → 14.7 ETH sur les 35 derniers, 85% perdants (petits trades)
 function buildEquityCurve() {
-  const logStart = Math.log(START_BALANCE);
-  const logEnd = Math.log(END_BALANCE);
-  const drift = (logEnd - logStart) / N_TRADES;
+  const mainN = N_TRADES - TAIL_TRADES; // trades avant le retournement
+  const balances = [];
 
-  // marche aléatoire brute
+  // --- Phase 1 : montée jusqu'au sommet 15.4 ---
+  const logStart = Math.log(START_BALANCE);
+  const drift = (Math.log(PEAK_BALANCE) - logStart) / mainN;
   const walk = [0];
-  for (let i = 1; i <= N_TRADES; i++) {
-    // bruit gaussien approx (somme de uniformes)
-    const g = (rng() + rng() + rng() - 1.5) * 2;
+  for (let i = 1; i <= mainN; i++) {
+    const g = (rng() + rng() + rng() - 1.5) * 2; // bruit gaussien approx
     walk.push(walk[i - 1] + g);
   }
-  // amplitude du bruit calibrée sur le nb de trades → garde ~70% de gains
-  const sigma = (5.0 / N_TRADES) / 0.55;
-  const wEnd = walk[N_TRADES];
-
-  const balances = [];
-  for (let i = 0; i <= N_TRADES; i++) {
-    const bridge = walk[i] - (i / N_TRADES) * wEnd; // pont brownien (0 aux bornes)
-    const logBal = logStart + drift * i + sigma * bridge;
-    balances.push(Math.exp(logBal));
+  const sigma = (Math.log(PEAK_BALANCE / START_BALANCE) / mainN) / 0.55;
+  const wEnd = walk[mainN];
+  for (let i = 0; i <= mainN; i++) {
+    const bridge = walk[i] - (i / mainN) * wEnd; // pont brownien (0 aux bornes)
+    const v = Math.exp(logStart + drift * i + sigma * bridge);
+    balances.push(Math.min(v, PEAK_BALANCE)); // jamais au-dessus du sommet 15.4
   }
   balances[0] = START_BALANCE;
-  balances[N_TRADES] = END_BALANCE; // ancrage exact
+  balances[mainN] = PEAK_BALANCE; // sommet exact
+
+  // --- Phase 2 : 35 derniers trades, 85% perdants, 15.4 → 14.7 ---
+  const negCount = Math.round(TAIL_TRADES * TAIL_LOSS_RATE); // 30 perdants
+  const signs = [];
+  for (let i = 0; i < TAIL_TRADES; i++) signs.push(i < negCount ? -1 : 1);
+  for (let i = TAIL_TRADES - 1; i > 0; i--) { // mélange Fisher–Yates
+    const j = Math.floor(rng() * (i + 1));
+    [signs[i], signs[j]] = [signs[j], signs[i]];
+  }
+  // magnitudes brutes (pertes un peu plus grosses que les gains)
+  let deltas = signs.map((s) => s * (0.2 + rng()) * (s < 0 ? 1 : 0.6));
+  // mise à l'échelle pour que la somme = 14.7 - 15.4 (signes conservés)
+  const sum = deltas.reduce((a, b) => a + b, 0);
+  const f = (FINAL_BALANCE - PEAK_BALANCE) / sum; // f > 0 (sum négatif) → signes gardés
+  deltas = deltas.map((d) => d * f);
+  let b = PEAK_BALANCE;
+  for (let i = 0; i < TAIL_TRADES; i++) {
+    b += deltas[i];
+    balances.push(b);
+  }
+  balances[N_TRADES] = FINAL_BALANCE; // ancrage exact
   return balances;
 }
 
@@ -117,12 +140,19 @@ function buildTrades() {
   const balances = buildEquityCurve();
   const trades = [];
 
-  // dates strictement croissantes réparties sur la période
-  const span = END_DATE - START_DATE;
+  // dates : phase 1 étalée du 03/02/2025 au 24/01/2026,
+  //         puis les 35 derniers trades resserrés du 24 au 28/01/2026
+  const mainN = N_TRADES - TAIL_TRADES;
+  const span1 = PIVOT_DATE - START_DATE;
+  const span2 = END_DATE - PIVOT_DATE;
   const times = [];
   for (let i = 0; i < N_TRADES; i++) {
-    const base = START_DATE + (span * (i + rand(0.05, 0.95))) / N_TRADES;
-    times.push(base);
+    if (i < mainN) {
+      times.push(START_DATE + (span1 * (i + rand(0.05, 0.95))) / mainN);
+    } else {
+      const k = i - mainN;
+      times.push(PIVOT_DATE + (span2 * (k + rand(0.05, 0.95))) / TAIL_TRADES);
+    }
   }
   times.sort((a, b) => a - b);
 
@@ -202,11 +232,11 @@ const TWEET_TEMPLATES = [
 
 function buildTweets(n) {
   const out = [];
-  let t = Date.now();
+  let t = END_DATE; // dernière activité ~28 janvier 2026
   for (let i = 0; i < n; i++) {
     const acc = pick(X_ACCOUNTS);
     const tok = pick(TOKENS);
-    t -= randInt(40, 600) * 1000; // espacement temporel décroissant
+    t -= randInt(600, 9000) * 1000; // espacement temporel décroissant
     out.push({
       acc,
       text: pick(TWEET_TEMPLATES)(tok),
@@ -233,11 +263,11 @@ const NEWS_TEMPLATES = [
 
 function buildNews(n) {
   const out = [];
-  let t = Date.now();
+  let t = END_DATE; // dernière activité ~28 janvier 2026
   for (let i = 0; i < n; i++) {
     const tok = pick(TOKENS);
     const tmpl = pick(NEWS_TEMPLATES)(tok);
-    t -= randInt(8, 70) * 60 * 1000;
+    t -= randInt(20, 180) * 60 * 1000;
     out.push({ ...tmpl, source: pick(NEWS_SOURCES), time: t, tok });
   }
   return out;

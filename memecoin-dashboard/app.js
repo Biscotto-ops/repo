@@ -137,7 +137,7 @@ function drawChart() {
   // grille horizontale + labels (échelle log)
   ctx.font = "11px Inter, sans-serif";
   ctx.textBaseline = "middle";
-  const ticks = [0.1, 0.5, 1, 2, 5, 10, 16.4];
+  const ticks = [0.1, 0.5, 1, 2, 5, 10, 15];
   ticks.forEach((tk) => {
     if (tk < minV || tk > maxV * 1.05) return;
     const yy = y(tk);
@@ -286,54 +286,15 @@ function openTradeModal(id) {
 }
 
 // =========================================================================
-//  POSITIONS OUVERTES (bot actif : P&L live, TP/SL qui se déclenchent)
+//  POSITIONS OUVERTES — le bot est arrêté (run terminé) → aucune position
 // =========================================================================
 const STRAT = { takeProfit: 0.85, stopLoss: -0.22 };
-let posSeq = 0;
-
-function makePosition() {
-  const tk = pick(TOKENS);
-  return {
-    uid: ++posSeq,
-    tk,
-    size: +(rand(0.4, 2.6)).toFixed(3),
-    entry: tk.price * rand(0.7, 1.4),
-    pnlPct: rand(-0.04, 0.06),
-    opened: Date.now() - randInt(2, 40) * 60000,
-  };
-}
-let positions = Array.from({ length: 4 }, makePosition);
+let positions = [];
 
 function renderPositions() {
   const el = document.getElementById("openPositions");
-  el.innerHTML = positions
-    .map((p) => {
-      const pl = p.size * p.pnlPct;
-      const cls = pl >= 0 ? "pos" : "neg";
-      return `<div class="pos-row" data-uid="${p.uid}">
-        <span class="tok-badge" style="background:${p.tk.color}">${p.tk.sym[0]}</span>
-        <div class="watch-main">
-          <span class="watch-sym">${p.tk.sym}</span>
-          <span class="watch-name">${p.size.toFixed(2)} ETH · ${timeAgo(p.opened)}</span>
-        </div>
-        <div class="pos-amount">
-          <div class="eth ${cls}">${fmtEthSigned(pl, 3)}</div>
-          <div class="pl ${cls}">${fmtPct(p.pnlPct * 100)}</div>
-        </div>
-      </div>`;
-    })
-    .join("");
-}
-
-function tickPositions() {
-  positions.forEach((p, i) => {
-    // marche aléatoire avec légère dérive haussière (le bot gagne souvent)
-    p.pnlPct += (Math.random() - 0.44) * 0.035;
-    if (p.pnlPct >= STRAT.takeProfit || p.pnlPct <= STRAT.stopLoss) {
-      positions[i] = makePosition(); // TP/SL atteint → on reprend une nouvelle paire
-    }
-  });
-  renderPositions();
+  el.innerHTML = `<div class="empty">Aucune position ouverte<br>
+    <span class="muted-sm">Bot arrêté · dernière clôture le 28/01/2026</span></div>`;
 }
 
 function openPositionModal(uid) {
@@ -381,6 +342,11 @@ function timeAgo(t) {
   if (h < 24) return `${h}h`;
   return `${Math.floor(h / 24)}j`;
 }
+// date absolue (les feeds sont figés à la fin du run, ~28 jan. 2026)
+function feedStamp(t) {
+  const d = new Date(t);
+  return `${pad2(d.getUTCDate())} ${MONTHS[d.getUTCMonth()].toLowerCase()} · ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
+}
 function compact(n) {
   if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
   return n + "";
@@ -394,7 +360,7 @@ function tweetHtml(tw) {
         <span class="tweet-name">${tw.acc.name}</span>
         ${tw.acc.verified ? '<span class="tweet-verif">✔</span>' : ""}
         <span class="tweet-handle">${tw.acc.handle}</span>
-        <span class="tweet-time">· ${timeAgo(tw.time)}</span>
+        <span class="tweet-time">· ${feedStamp(tw.time)}</span>
       </div>
       <div class="tweet-text">${tw.text}</div>
       <div class="tweet-stats">
@@ -431,7 +397,7 @@ function newsHtml(n) {
     <div class="news-body">
       <div class="news-meta">
         <span class="news-source">${n.source}</span>
-        <span>· ${timeAgo(n.time)}</span>
+        <span>· ${feedStamp(n.time)}</span>
         <span class="tag ${n.tag}">${TAG_LABEL[n.tag]}</span>
       </div>
       <div class="news-title">${n.title}</div>
@@ -594,12 +560,6 @@ function init() {
   renderPositions();
   renderTweets();
   renderNews();
-
-  // Boucles live (gelées quand le bot est désactivé)
-  setInterval(() => { if (botActive) tickPositions(); }, 2600);
-  setInterval(() => { renderPositions(); }, 30000); // rafraîchit l'âge des positions
-  loopTweet();
-  loopNews();
 
   // Bot ON/OFF (désactivé par défaut)
   setBot(false);

@@ -90,7 +90,11 @@ function renderTrades() {
 function fmtPriceJS(p) {
   if (p >= 1) return p.toFixed(2);
   if (p >= 0.01) return p.toFixed(4);
-  return p.toPrecision(3);
+  if (p >= 0.0001) return p.toFixed(6);
+  // très petits prix : 3 chiffres significatifs, toujours en décimal (jamais 8.18e-7)
+  const exp = Math.floor(Math.log10(p));
+  const decimals = Math.min(-exp + 2, 12);
+  return p.toFixed(decimals);
 }
 
 function initFilters() {

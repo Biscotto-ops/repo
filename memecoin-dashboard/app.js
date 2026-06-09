@@ -62,7 +62,7 @@ function renderTrades() {
   body.innerHTML = rows
     .map((t) => {
       const cls = t.pnl >= 0 ? "pos" : "neg";
-      return `<tr>
+      return `<tr class="trade-row" data-id="${t.id}">
         <td class="date-cell">${fmtDate(t.time)}</td>
         <td>
           <div class="tok-cell">
@@ -225,31 +225,149 @@ function initChartHover() {
 }
 
 // =========================================================================
-//  OPEN POSITIONS (3 positions actives fictives)
+//  MODALE générique + faux détails on-chain
 // =========================================================================
+function openModal(html) {
+  document.getElementById("modalBody").innerHTML = html;
+  document.getElementById("modalOverlay").classList.add("show");
+}
+function closeModal() {
+  document.getElementById("modalOverlay").classList.remove("show");
+}
+function hexHash(seed, len) {
+  // hash pseudo-aléatoire mais STABLE (même tx => même hash)
+  let h = 2166136261 ^ seed;
+  let out = "";
+  for (let i = 0; i < len; i++) {
+    h = Math.imul(h ^ (h >>> 15), 2246822507);
+    h = (h ^ (h >>> 13)) >>> 0;
+    out += "0123456789abcdef"[h & 15];
+  }
+  return out;
+}
+const DEXES = ["Uniswap V3", "Uniswap V2", "Raydium", "PancakeSwap", "1inch"];
+
+function fmtFullDate(t) {
+  const d = new Date(t);
+  return `${String(d.getUTCDate()).padStart(2, "0")} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()} · ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
+}
+
+function openTradeModal(id) {
+  const t = trades[id - 1];
+  if (!t) return;
+  const cls = t.pnl >= 0 ? "pos" : "neg";
+  const tx = "0x" + hexHash(id * 7 + 1, 40);
+  const block = (18_900_000 + id * 217 + (hexHash(id, 4).charCodeAt(0) % 90)).toLocaleString("fr-FR");
+  const gas = (5 + (id * 13) % 70) + " Gwei";
+  const dex = DEXES[id % DEXES.length];
+  const slip = (2 + (id * 3) % 11) + "." + (id % 10) + "%";
+  const dur = (3 + (id * 5) % 56) + " min";
+  const usd = Math.abs(t.pnl) * ETH_USD;
+  openModal(`
+    <div class="m-head">
+      <span class="tok-badge" style="background:${t.token.color}">${t.token.sym[0]}</span>
+      <div>
+        <div class="m-title">${t.token.sym} <span class="muted-sm">${t.token.name}</span></div>
+        <div class="muted-sm">${fmtFullDate(t.time)}</div>
+      </div>
+      <span class="side ${t.pnl >= 0 ? "buy" : "sell"}" style="margin-left:auto">LONG · CLÔTURÉ</span>
+    </div>
+    <div class="m-pnl ${cls}">${fmtEthSigned(t.pnl, 4)} <span class="muted-sm">(${fmtPct(t.pct)} · ${t.pnl >= 0 ? "+" : "-"}$${Math.round(usd).toLocaleString("fr-FR")})</span></div>
+    <div class="m-grid">
+      <div><span>Taille position</span><b>${t.size.toFixed(4)} ETH</b></div>
+      <div><span>Prix d'entrée</span><b>$${fmtPriceJS(t.entry)}</b></div>
+      <div><span>Prix de sortie</span><b>$${fmtPriceJS(t.exit)}</b></div>
+      <div><span>Solde après trade</span><b>${t.balance.toFixed(4)} ETH</b></div>
+      <div><span>DEX / Routeur</span><b>${dex}</b></div>
+      <div><span>Durée de détention</span><b>${dur}</b></div>
+      <div><span>Slippage</span><b>${slip}</b></div>
+      <div><span>Gas</span><b>${gas}</b></div>
+      <div><span>Bloc</span><b>${block}</b></div>
+      <div class="m-wide"><span>Hash de transaction</span><b class="mono ellip">${tx}</b></div>
+    </div>
+  `);
+}
+
+// =========================================================================
+//  POSITIONS OUVERTES (bot actif : P&L live, TP/SL qui se déclenchent)
+// =========================================================================
+const STRAT = { takeProfit: 0.85, stopLoss: -0.22 };
+let posSeq = 0;
+
+function makePosition() {
+  const tk = pick(TOKENS);
+  return {
+    uid: ++posSeq,
+    tk,
+    size: +(rand(0.4, 2.6)).toFixed(3),
+    entry: tk.price * rand(0.7, 1.4),
+    pnlPct: rand(-0.04, 0.06),
+    opened: Date.now() - randInt(2, 40) * 60000,
+  };
+}
+let positions = Array.from({ length: 4 }, makePosition);
+
 function renderPositions() {
   const el = document.getElementById("openPositions");
-  const open = [
-    { tk: TOKENS[0], size: 1.85, pl: 0.62, plPct: 33.5 },
-    { tk: TOKENS[6], size: 0.95, pl: -0.11, plPct: -11.6 },
-    { tk: TOKENS[10], size: 1.20, pl: 0.41, plPct: 34.2 },
-  ];
-  el.innerHTML = open
+  el.innerHTML = positions
     .map((p) => {
-      const cls = p.pl >= 0 ? "pos" : "neg";
-      return `<div class="pos-row">
+      const pl = p.size * p.pnlPct;
+      const cls = pl >= 0 ? "pos" : "neg";
+      return `<div class="pos-row" data-uid="${p.uid}">
         <span class="tok-badge" style="background:${p.tk.color}">${p.tk.sym[0]}</span>
         <div class="watch-main">
           <span class="watch-sym">${p.tk.sym}</span>
-          <span class="watch-name">${p.size.toFixed(2)} ETH engagés</span>
+          <span class="watch-name">${p.size.toFixed(2)} ETH · ${timeAgo(p.opened)}</span>
         </div>
         <div class="pos-amount">
-          <div class="eth ${cls}">${fmtEthSigned(p.pl, 2)}</div>
-          <div class="pl ${cls}">${fmtPct(p.plPct)}</div>
+          <div class="eth ${cls}">${fmtEthSigned(pl, 3)}</div>
+          <div class="pl ${cls}">${fmtPct(p.pnlPct * 100)}</div>
         </div>
       </div>`;
     })
     .join("");
+}
+
+function tickPositions() {
+  positions.forEach((p, i) => {
+    // marche aléatoire avec légère dérive haussière (le bot gagne souvent)
+    p.pnlPct += (Math.random() - 0.44) * 0.035;
+    if (p.pnlPct >= STRAT.takeProfit || p.pnlPct <= STRAT.stopLoss) {
+      positions[i] = makePosition(); // TP/SL atteint → on reprend une nouvelle paire
+    }
+  });
+  renderPositions();
+}
+
+function openPositionModal(uid) {
+  const p = positions.find((x) => x.uid === uid);
+  if (!p) return;
+  const pl = p.size * p.pnlPct;
+  const cls = pl >= 0 ? "pos" : "neg";
+  const cur = p.entry * (1 + p.pnlPct);
+  const tpPrice = p.entry * (1 + STRAT.takeProfit);
+  const slPrice = p.entry * (1 + STRAT.stopLoss);
+  openModal(`
+    <div class="m-head">
+      <span class="tok-badge" style="background:${p.tk.color}">${p.tk.sym[0]}</span>
+      <div>
+        <div class="m-title">${p.tk.sym} <span class="muted-sm">${p.tk.name}</span></div>
+        <div class="muted-sm">Ouverte ${timeAgo(p.opened)} · <span class="pos">EN COURS</span></div>
+      </div>
+      <span class="live-tag" style="margin-left:auto"><span class="status-dot"></span>LIVE</span>
+    </div>
+    <div class="m-pnl ${cls}">${fmtEthSigned(pl, 4)} <span class="muted-sm">(${fmtPct(p.pnlPct * 100)})</span></div>
+    <div class="m-grid">
+      <div><span>Taille engagée</span><b>${p.size.toFixed(4)} ETH</b></div>
+      <div><span>Prix d'entrée</span><b>$${fmtPriceJS(p.entry)}</b></div>
+      <div><span>Prix actuel</span><b>$${fmtPriceJS(cur)}</b></div>
+      <div><span>Valeur position</span><b>${(p.size * (1 + p.pnlPct)).toFixed(4)} ETH</b></div>
+      <div><span>Take profit (+85%)</span><b class="pos">$${fmtPriceJS(tpPrice)}</b></div>
+      <div><span>Stop loss (-22%)</span><b class="neg">$${fmtPriceJS(slPrice)}</b></div>
+    </div>
+    <div class="m-bar"><div class="m-bar-fill ${cls}" style="width:${Math.max(4, Math.min(100, ((p.pnlPct - STRAT.stopLoss) / (STRAT.takeProfit - STRAT.stopLoss)) * 100)).toFixed(0)}%"></div></div>
+    <div class="muted-sm" style="margin-top:6px">Progression entre stop-loss et take-profit</div>
+  `);
 }
 
 // =========================================================================
@@ -369,6 +487,60 @@ function pushNews() {
 }
 
 // =========================================================================
+//  STRATÉGIE (modale détaillée)
+// =========================================================================
+function openStrategyModal() {
+  const wins = trades.filter((t) => t.pnl >= 0).length;
+  const wr = ((wins / trades.length) * 100).toFixed(1);
+  openModal(`
+    <div class="m-head">
+      <span class="x-logo" style="background:linear-gradient(135deg,#7c5cff,#00d6ff);color:#0a0b10">◈</span>
+      <div>
+        <div class="m-title">Stratégie · Sniper + Momentum</div>
+        <div class="muted-sm">Moteur d'exécution AlphaSnipe v3.2</div>
+      </div>
+    </div>
+    <p class="m-desc">Le bot scanne le mempool à la recherche de nouvelles paires memecoin,
+    filtre via un scan anti-rug (liquidité lockée, contrat vérifié, répartition des holders),
+    puis entre en position avec un dimensionnement dynamique de type Kelly. Sortie automatique
+    au take-profit ou stop-loss.</p>
+    <div class="m-grid">
+      <div><span>Take profit</span><b class="pos">+85%</b></div>
+      <div><span>Stop loss</span><b class="neg">-22%</b></div>
+      <div><span>Slippage max</span><b>12%</b></div>
+      <div><span>Gas priority</span><b>Turbo (mempool)</b></div>
+      <div><span>Dimensionnement</span><b>Kelly dynamique</b></div>
+      <div><span>Anti-rug scan</span><b class="pos">Activé</b></div>
+      <div><span>Win rate (historique)</span><b>${wr}%</b></div>
+      <div><span>Trades exécutés</span><b>${trades.length}</b></div>
+    </div>
+  `);
+}
+
+// =========================================================================
+//  BOT ON / OFF  +  boucles temporelles
+// =========================================================================
+let botActive = true;
+const rndMs = (a, b) => a + Math.random() * (b - a);
+
+function setBot(active) {
+  botActive = active;
+  const pill = document.getElementById("botToggle");
+  const label = document.getElementById("botStatus");
+  pill.classList.toggle("off", !active);
+  label.textContent = active ? "BOT ACTIF" : "BOT DÉSACTIVÉ";
+}
+
+function loopTweet() {
+  if (botActive) pushTweet();
+  setTimeout(loopTweet, rndMs(120000, 180000)); // 2–3 min aléatoire
+}
+function loopNews() {
+  if (botActive) pushNews();
+  setTimeout(loopNews, rndMs(180000, 300000)); // 3–5 min aléatoire
+}
+
+// =========================================================================
 //  INIT
 // =========================================================================
 function init() {
@@ -382,9 +554,35 @@ function init() {
   renderTweets();
   renderNews();
 
-  setInterval(tickTicker, 2000);
-  setInterval(pushTweet, 5000);
-  setInterval(pushNews, 11000);
+  // Boucles live (gelées quand le bot est désactivé)
+  setInterval(() => { if (botActive) tickTicker(); }, 3000);
+  setInterval(() => { if (botActive) tickPositions(); }, 2600);
+  setInterval(() => { renderPositions(); }, 30000); // rafraîchit l'âge des positions
+  loopTweet();
+  loopNews();
+
+  // Bot ON/OFF
+  document.getElementById("botToggle").addEventListener("click", () => setBot(!botActive));
+
+  // Clic sur un trade → fiche détail
+  document.getElementById("tradeBody").addEventListener("click", (e) => {
+    const row = e.target.closest(".trade-row");
+    if (row) openTradeModal(+row.dataset.id);
+  });
+  // Clic sur une position → fiche détail
+  document.getElementById("openPositions").addEventListener("click", (e) => {
+    const row = e.target.closest(".pos-row");
+    if (row) openPositionModal(+row.dataset.uid);
+  });
+  // Clic sur la stratégie → détail
+  document.querySelector(".panel.strategy").addEventListener("click", openStrategyModal);
+
+  // Fermeture de la modale
+  document.getElementById("modalOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "modalOverlay" || e.target.closest(".modal-close")) closeModal();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
   window.addEventListener("resize", drawChart);
 }
 

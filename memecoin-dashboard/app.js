@@ -21,18 +21,16 @@ function fmtDate(t) {
 // =========================================================================
 function renderStats() {
   const finalBal = balances[balances.length - 1];
-  const startBal = balances[0];
-  const pnl = finalBal - startBal;
-  const roi = (pnl / startBal) * 100;
+  const pnl = finalBal - balances[0];
   const wins = trades.filter((t) => t.pnl >= 0).length;
   const losses = trades.length - wins;
   const winrate = (wins / trades.length) * 100;
   const best = trades.reduce((m, t) => (t.pnl > m.pnl ? t : m), trades[0]);
 
   document.getElementById("statBalance").textContent = fmtEth(finalBal);
-  document.getElementById("statBalanceUsd").textContent = `≈ ${fmtUsd(finalBal * ETH_USD)}`;
+  document.getElementById("statBalanceUsd").textContent = "Capital initial : 0.10 ETH";
   document.getElementById("statPnl").textContent = fmtEthSigned(pnl, 2);
-  document.getElementById("statRoi").textContent = `ROI ${fmtPct(roi)}`;
+  document.getElementById("statRoi").textContent = "réalisé depuis fév. 2025";
   document.getElementById("statWinrate").textContent = `${winrate.toFixed(1)}%`;
   document.getElementById("statWinLoss").innerHTML =
     `<span class="pos">${wins} gains</span> · <span class="neg">${losses} pertes</span>`;
@@ -262,7 +260,6 @@ function openTradeModal(id) {
   const dex = DEXES[id % DEXES.length];
   const slip = (2 + (id * 3) % 11) + "." + (id % 10) + "%";
   const dur = (3 + (id * 5) % 56) + " min";
-  const usd = Math.abs(t.pnl) * ETH_USD;
   openModal(`
     <div class="m-head">
       <span class="tok-badge" style="background:${t.token.color}">${t.token.sym[0]}</span>
@@ -272,7 +269,7 @@ function openTradeModal(id) {
       </div>
       <span class="side ${t.pnl >= 0 ? "buy" : "sell"}" style="margin-left:auto">LONG · CLÔTURÉ</span>
     </div>
-    <div class="m-pnl ${cls}">${fmtEthSigned(t.pnl, 4)} <span class="muted-sm">(${fmtPct(t.pct)} · ${t.pnl >= 0 ? "+" : "-"}$${Math.round(usd).toLocaleString("fr-FR")})</span></div>
+    <div class="m-pnl ${cls}">${fmtEthSigned(t.pnl, 4)} <span class="muted-sm">(${fmtPct(t.pct)})</span></div>
     <div class="m-grid">
       <div><span>Taille position</span><b>${t.size.toFixed(4)} ETH</b></div>
       <div><span>Prix d'entrée</span><b>$${fmtPriceJS(t.entry)}</b></div>
@@ -518,9 +515,76 @@ function openStrategyModal() {
 }
 
 // =========================================================================
+//  LOGS (terminal d'activité du bot)
+// =========================================================================
+function pad2(x) { return String(x).padStart(2, "0"); }
+function clockStr(t) {
+  const d = new Date(t);
+  return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
+}
+const rPick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+function buildLogs(cycles) {
+  const out = [];
+  let t = Date.now() - cycles * 55000;
+  for (let c = 0; c < cycles; c++) {
+    const tk = rPick(TOKENS);
+    const addr = "0x" + hexHash((Math.random() * 1e9) | 0, 5) + "…" + hexHash((Math.random() * 1e9) | 0, 4);
+    const price = "$" + fmtPriceJS(tk.price * (0.6 + Math.random() * 1.1));
+    const size = (0.2 + Math.random() * 2.3).toFixed(3);
+    const gas = (6 + ((Math.random() * 60) | 0)) + " Gwei";
+    const slip = (2 + Math.random() * 9).toFixed(1) + "%";
+
+    t += 9000 + Math.random() * 28000;
+    out.push({ t, type: "SCAN", msg: `Nouvelle paire détectée $${tk.sym} ${addr}` });
+    t += 1100 + Math.random() * 1800;
+    if (Math.random() < 0.17) {
+      out.push({ t, type: "RUG", msg: `$${tk.sym} — honeypot / LP non lockée, position ignorée` });
+      continue;
+    }
+    out.push({ t, type: "OK", msg: `Anti-rug $${tk.sym} OK · LP lockée ✓ · contrat vérifié ✓ · top10 ${(20 + (Math.random() * 25) | 0)}%` });
+    t += 700 + Math.random() * 1400;
+    out.push({ t, type: "BUY", msg: `Achat ${size} ETH $${tk.sym} @ ${price} · gas ${gas} · slip ${slip}` });
+    t += 50000 + Math.random() * 320000;
+    if (Math.random() < 0.72) {
+      const g = (+size * (0.1 + Math.random() * 0.75)).toFixed(3);
+      out.push({ t, type: "TP", msg: `Take-profit $${tk.sym} déclenché → +${g} ETH · position clôturée` });
+    } else {
+      const l = (+size * (0.05 + Math.random() * 0.17)).toFixed(3);
+      out.push({ t, type: "SL", msg: `Stop-loss $${tk.sym} déclenché → -${l} ETH · position fermée` });
+    }
+  }
+  return out.reverse(); // plus récent en haut
+}
+
+const LOG_TAG = {
+  SCAN: "SCAN", OK: "SAFE", RUG: "RUG", BUY: "BUY", TP: "TP", SL: "SL",
+};
+function openLogsModal() {
+  const logs = buildLogs(26);
+  const rows = logs
+    .map((l) => `<div class="log-line">
+      <span class="log-t">${clockStr(l.t)}</span>
+      <span class="log-tag ${l.type}">${LOG_TAG[l.type]}</span>
+      <span class="log-msg">${l.msg}</span>
+    </div>`)
+    .join("");
+  openModal(`
+    <div class="m-head">
+      <span class="x-logo" style="background:#000;color:#1fd17b;font-family:var(--mono)">›_</span>
+      <div>
+        <div class="m-title">Logs d'exécution</div>
+        <div class="muted-sm">Journal du moteur · ${botActive ? '<span class="pos">live</span>' : '<span class="neg">bot en pause</span>'}</div>
+      </div>
+    </div>
+    <div class="log-term">${rows}</div>
+  `);
+}
+
+// =========================================================================
 //  BOT ON / OFF  +  boucles temporelles
 // =========================================================================
-let botActive = true;
+let botActive = false; // désactivé par défaut
 const rndMs = (a, b) => a + Math.random() * (b - a);
 
 function setBot(active) {
@@ -561,8 +625,23 @@ function init() {
   loopTweet();
   loopNews();
 
-  // Bot ON/OFF
+  // Bot ON/OFF (désactivé par défaut)
+  setBot(false);
   document.getElementById("botToggle").addEventListener("click", () => setBot(!botActive));
+
+  // Navigation cliquable
+  const navItems = document.querySelectorAll(".topnav a");
+  navItems.forEach((a) => {
+    a.addEventListener("click", () => {
+      navItems.forEach((x) => x.classList.remove("active"));
+      a.classList.add("active");
+      const label = a.textContent.trim();
+      if (label === "Positions") document.querySelector(".col-right").scrollIntoView({ behavior: "smooth", block: "start" });
+      else if (label === "Stratégie") openStrategyModal();
+      else if (label === "Logs") openLogsModal();
+      else window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
 
   // Clic sur un trade → fiche détail
   document.getElementById("tradeBody").addEventListener("click", (e) => {

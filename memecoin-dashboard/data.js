@@ -105,10 +105,21 @@ function buildTrades() {
     const win = pnl >= 0;
     const token = pick(TOKENS);
 
-    // rendement sur la position (mouvement du token)
-    const tokenRet = win ? rand(0.22, 4.2) : -rand(0.10, 0.66);
+    // Rendement sur la position, cohérent avec la stratégie (TP +85% / SL -22%) :
+    //  - gains : la plupart entre +6% et le take-profit +85%, + quelques "runners"
+    //  - pertes : la plupart jusqu'au stop-loss -22%, + quelques rugs/slippage plus violents
+    let tokenRet;
+    if (win) {
+      tokenRet = rng() < 0.16 ? rand(0.85, 4.0) : rand(0.06, 0.85);
+    } else {
+      tokenRet = -(rng() < 0.12 ? rand(0.22, 0.82) : rand(0.04, 0.22));
+    }
     // taille de la position telle que size * tokenRet = pnl  (signes cohérents)
-    const size = Math.abs(pnl / tokenRet);
+    let size = Math.abs(pnl / tokenRet);
+    // bornes réalistes : entre 0.01 ETH et 60% du capital du moment
+    const maxSize = Math.max(0.02, prev * 0.6);
+    size = Math.min(Math.max(size, 0.01), maxSize);
+    tokenRet = pnl / size; // on réajuste le rendement pour rester cohérent
 
     const entry = token.price * rand(0.6, 1.5);
     const exit = entry * (1 + tokenRet);
